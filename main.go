@@ -58,7 +58,6 @@ func main() {
 			fmt.Print(errNameIsNotExisting)
 			if errors.Is(errNameIsNotExisting, gorm.ErrRecordNotFound){
 				db.Create(&User{Username: postData.Username, Pwd: postData.Password})
-				db.Commit()
 				msg = "注册成功"
 			}else {msg = "用户名已存在"}
 		}
