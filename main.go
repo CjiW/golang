@@ -16,35 +16,27 @@ type postJson struct {
 }
 
 type User struct {
-	gorm.Model
+	Id int
 	Username string
 	Pwd string
 }
 
 func main() {
-	var user User
-	db, errConnectDatabase := gorm.Open(mysql.Open("root:020103@tcp(127.0.0.1:3306)/usersinformation?parseTime=true"), &gorm.Config{})
-	if errConnectDatabase != nil {
-		panic("failed to connect database")
-	}
-	// 迁移 schema
-	db.AutoMigrate(&User{})
 
+	db, errConnectDatabase := gorm.Open(mysql.Open("root:020103@tcp(127.0.0.1:3306)/usersinformation?parseTime=true"), &gorm.Config{})
+	if errConnectDatabase != nil {panic("failed to connect database")}
+	db.AutoMigrate(&User{})
 
 	r := gin.Default()
 	r.POST("/loginData/", func(context *gin.Context) {
 		var postData postJson
 		var msg string
-
-		// Create
-		//db.Create(&User{Username: "admin", Pwd: "123456"})
-
 		errJson := context.ShouldBindJSON(&postData)
-		if postData.Type=="signIn"{
+		if errJson != nil {fmt.Print("errJson")}
 
-			if errJson != nil {
-				fmt.Print("errJson")
-			}
+		if postData.Type=="signIn"{
+			// 登录
+			var user User
 			db.First(&user, "username = ?", postData.Username)
 			serverPwd := user.Pwd
 
@@ -54,17 +46,19 @@ func main() {
 				msg = "欢迎"
 			}
 		}else if postData.Type=="signUp" {
+			// 注册
+			var user User
 			errNameIsNotExisting :=(db.First(&user,"username = ?", postData.Username)).Error
-			fmt.Print(errNameIsNotExisting)
+			fmt.Print(errNameIsNotExisting, "\n")
 			if errors.Is(errNameIsNotExisting, gorm.ErrRecordNotFound){
-				db.Create(&User{Username: postData.Username, Pwd: postData.Password})
+				errCreate := db.Create(&User{Username: postData.Username, Pwd: postData.Password}).Error
+				fmt.Print(errCreate, "\n")
 				msg = "注册成功"
 			}else {msg = "用户名已存在"}
 		}
 
 		context.JSON(200, gin.H{"msg": msg, "time": time.Now()})
-		//context.String(200, "\n")
-		fmt.Print(db)
+		context.String(200, "\n")
 	})
 	errWebRun := r.Run()
 	if errWebRun != nil {
